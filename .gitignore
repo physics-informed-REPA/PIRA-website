@@ -1,2 +1,8 @@
 .venv/
 .env/
+*_temp*
+
+*_seen.pdf
+*_seen.png
+*_unseen.pdf
+*_unseen.png
