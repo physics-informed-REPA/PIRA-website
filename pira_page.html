@@ -1,0 +1,1025 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>Physics Informed REPA: Exploring Physics Post-Training for Video Diffusion Models</title>
+        <link rel="icon" type="image/x-icon" href="static/img/icons/tower_icon.png">
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta property="og:url" content="https://vision-x-nyu.github.io/pisa-experiments.github.io/" />
+        <meta property="og:image" content="https://vision-x-nyu.github.io/pisa-experiments.github.io/static/img/preview.png" />
+        <meta property="og:title" content="PISA Experiments: Exploring Physics Post-Training for Video Diffusion Models by Watching Stuff Drop" />
+        <meta property="og:description" content="We introduce the PISA (Physics-Informed Simulation and Alignment) framework for studying physics post-training in the context of the dropping task." />
+
+        <meta name="twitter:url" content="https://vision-x-nyu.github.io/pisa-experiments.github.io/" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://vision-x-nyu.github.io/pisa-experiments.github.io/static/img/preview.png" />
+        <meta name="twitter:title" content="Pisa Experiments: What Video Diffusion Models Learn from Watching Stuff Drop" />
+        <meta name="twitter:description" content="We introduce the PISA (Physics-Informed Simulation and Alignment) framework for studying physics post-training in the context of the dropping task." />
+
+        <script src="./static/js/distill_template.v2.js"></script>
+
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <script src="https://d3js.org/d3-collection.v1.min.js"></script>
+        <script src="https://rawgit.com/nstrayer/slid3r/master/dist/slid3r.js"></script>
+        <script type="text/javascript" async
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+        </script>
+
+        <link rel="stylesheet" href="./static/css/style.css">
+        <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9.0.0/swiper-bundle.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/swiper@9.0.0/swiper-bundle.min.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.js" integrity="sha384-9Nhn55MVVN0/4OFx7EE5kpFBPsEMZxKTCnA+4fqDmg12eCTqGi6+BB2LjY8brQxJ" crossorigin="anonymous"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script>
+        <script defer src="./static/js/fontawesome.all.min.js"></script>
+
+        <!-- medium zoom https://github.com/francoischalifour/medium-zoom -->
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>  <!-- jquery -->
+        <script defer src="./static/js/medium-zoom.min.js"></script>
+        <script defer src="./static/js/zoom.js"></script>
+        
+        <!-- Interactive Video Comparison Styles -->
+        <style>
+            .split-selector {
+                margin-bottom: 20px;
+                text-align: center;
+            }
+            
+            .split-btn {
+                background: #f8f9fa;
+                border: 2px solid #dee2e6;
+                color: #495057;
+                padding: 10px 20px;
+                margin: 0 5px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 500;
+                transition: all 0.3s ease;
+            }
+            
+            .split-btn:hover {
+                background: #e9ecef;
+                border-color: #adb5bd;
+            }
+            
+            .split-btn.active {
+                background: #4a14f1;
+                border-color: #4a14f1;
+                color: white;
+            }
+            
+            .navigation-controls {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 20px;
+                max-width: 400px;
+                margin: 0 auto;
+            }
+            
+            .nav-arrow {
+                background: #4a14f1;
+                border: 2px solid #4a14f1;
+                color: white;
+                padding: 12px 16px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 18px;
+                transition: all 0.3s ease;
+                min-width: 50px;
+            }
+            
+            .nav-arrow:hover:not(:disabled) {
+                background: #3a0fd1;
+                border-color: #3a0fd1;
+                transform: translateY(-2px);
+            }
+            
+            .nav-arrow:disabled {
+                background: #e9ecef;
+                border-color: #dee2e6;
+                color: #adb5bd;
+                cursor: not-allowed;
+                transform: none;
+            }
+            
+            .instance-dropdown {
+                background: white;
+                border: 2px solid #4a14f1;
+                color: #333;
+                padding: 8px 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 16px;
+                min-width: 140px;
+                text-align: center;
+                transition: all 0.3s ease;
+                appearance: none;
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234a14f1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+                background-position: right 8px center;
+                background-repeat: no-repeat;
+                background-size: 16px;
+                padding-right: 32px;
+            }
+            
+            .instance-dropdown:hover {
+                border-color: #3a0fd1;
+                transform: translateY(-1px);
+            }
+            
+            .instance-dropdown:focus {
+                outline: none;
+                border-color: #3a0fd1;
+                box-shadow: 0 0 0 3px rgba(74, 20, 241, 0.1);
+            }
+            
+            .video-comparison {
+                display: flex;
+                justify-content: center;
+                margin-top: 20px;
+            }
+            
+            .comparison-row {
+                display: flex;
+                gap: 20px;
+                flex-wrap: wrap;
+                justify-content: center;
+                max-width: 1000px;
+            }
+            
+            .video-column {
+                flex: 1;
+                min-width: 250px;
+                text-align: center;
+            }
+            
+            .method-label {
+                margin-bottom: 10px;
+                font-weight: 600;
+                color: #333;
+                font-size: 14px;
+            }
+            
+            .video-column video {
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                border: 1px solid #dee2e6;
+            }
+            
+            /* Hide volume controls for videos without audio */
+            video::-webkit-media-controls-volume-slider,
+            video::-webkit-media-controls-mute-button {
+                display: none;
+            }
+
+            video::-moz-media-controls-volume-slider,
+            video::-moz-media-controls-mute-button {
+                display: none;
+            }
+
+            /* For all videos, hide audio controls */
+            video::cue {
+                display: none;
+            }
+            
+            
+            /* Responsive design */
+            @media (max-width: 768px) {
+                .navigation-controls {
+                    gap: 15px;
+                }
+                
+                .nav-arrow {
+                    padding: 10px 14px;
+                    font-size: 16px;
+                    min-width: 45px;
+                }
+                
+                .instance-dropdown {
+                    font-size: 14px;
+                    min-width: 120px;
+                    padding: 6px 10px;
+                    padding-right: 28px;
+                }
+                
+                .comparison-row {
+                    flex-direction: column;
+                    align-items: center;
+                }
+                
+                .video-column {
+                    min-width: 200px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header-wrapper">
+            <div class="header-container" id="header-container">
+                <div class="header-content">
+                    <h1 style="margin-top: 0px"><i>Physics Informed REPA</i> <br> <span style="font-size: 37px;">Exploring Physics Post-Training for Video Diffusion Models</span></h1>
+                    <p style="color: #3361aa">
+                        We introduce the REPA (<em><strong style="color: #4a14f1">R</strong></em>easoning <em><strong style="color: #4a14f1">E</strong></em>nhanced <em><strong style="color: #4a14f1">P</strong></em>hysics <em><strong style="color: #4a14f1">A</strong></em>lignment) framework for studying physics post-training.
+                    </p>
+                    <div class="icon-container">
+                        <div class="icon-item">
+                            <img src="./static/img/icons/benchmark.svg" alt="PISA Bench Icon">
+                            <div><strong>PisaBench</strong>: We introduce PisaBench to examine the ability of video generative models to produce accurate physical phenomena by focusing on a straightforward dropping task.</div>
+                        </div>
+                        <div class="icon-item">
+                            <img src="./static/img/icons/enhancement.svg" alt="Physics Post-Training Icon">
+                            <div><strong>Physics Post-Training</strong>: We present a two-stage post-training pipeline to enhance the physical accuracy of video diffusion models.</div>
+                        </div>
+                        <div class="icon-item">
+                            <img src="./static/img/icons/generalization.svg" alt="Generalization Analysis Icon">
+                            <div><strong>Generalization Analysis</strong>: We conduct a series of experiments to examine the our model's learned behavior and generalization ability.</div>
+                        </div>
+                    </div>
+                    <div class="button-container">
+                        <a href="#" class="button paper-link disabled" onclick="return false;">
+                            <span class="icon is-small">
+                                <i class="ai ai-arxiv"></i>
+                            </span>
+                            arXiv
+                        </a>
+                        <a href="#" class="button paper-link disabled" onclick="return false;">
+                            <span class="icon is-small">
+                                <i class="fas fa-file-pdf"></i>
+                            </span>
+                            <span>pdf</span>
+                        </a>
+                        <a href="#" class="button disabled" onclick="return false;">
+                            <span class="icon is-small">
+                                <i class="fab fa-github"></i>
+                            </span>
+                            <span>Code</span>
+                        </a>
+                        <a href="#" class="button disabled" onclick="return false;">
+                            <span class="icon is-small">
+                                <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Hugging Face logo" style="height: 1em;">
+                            </span>
+                            <span>REPA</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="header-image">
+                    <img src="background_image_nano_.png" alt="REPA Background Image" class="teaser-image">
+                </div>
+            </div>
+        </div>
+    <d-article>
+        <div class="byline">
+            <div class="byline-container">
+                <div class="byline-column">
+                    <h3>Authors</h3>
+                    <p><a href="#" class="author-link">Antonios Tragoudaras</a></p>
+                </div>
+                <div class="byline-column">
+                    <h3>Affiliations</h3>
+                    <p>
+                        <a href="https://www.uva.nl/" class="affiliation-link" target="_blank">University of Amsterdam</a>
+                    </p>
+                </div>
+                <div class="byline-column">
+                    <h3>Date</h3>
+                    <p>
+                        Dec. 2024
+                    </p>
+                </div>
+            </div>
+        </div>
+        <p class="text abstract">
+            <video controls style="max-width: 960px; width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <source src="static/videos/intro_video.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </p>
+        <p class="text abstract">
+            <strong>TLDR:</strong> Large-scale pre-trained video generation models excel in content creation but are not reliable as physically accurate world simulators out of the box, even for tasks as simple as modeling object freefall. To remedy this problem, we zoom in on the task of gravitational freefall and introduce PisaBench, a benchmark to study physics post-training for video diffusion models. We find a two-stage post-training process on simulated data consisting of supervised finetuning followed by a novel reward modeling process to be highly effective. Our post-trained open-source models outperforms state-of-the-art commercial models like Sora on unseen real-world data. We conclude our study by revealing some key limitations of post-training in generalization and distribution modeling. 
+        </p>
+        <div class="icon-row">
+            <a href="#pisabench" class="icon-link">
+                <img src="static/img/icons/benchmark.svg" alt="Pisa Bench Logo" class="icon-jump">
+                PisaBench<br> &nbsp;
+            </a>
+            <a href="#post-training" class="icon-link">
+                <img src="static/img/icons/enhancement.svg" alt="Physics Post-Training Logo" class="icon-jump">
+                Physics<br>Post-Training
+            </a>
+            <a href="#generalization" class="icon-link">
+                <img src="static/img/icons/generalization.svg" alt="Generalization Analysis Logo" class="icon-jump">
+                Generalization<br>Analysis
+            </a>
+        </div>
+        <p class="click-hint" style="width: 85%;">
+            <img src="static/img/icons/click.gif" style="width: 1.5rem">
+            <strong>Click to jump to each section.</strong>
+        </p>
+        <hr>
+
+        <div id="pisabench">
+            <h1 class="text">PisaBench</h1>
+            <p class="text">
+                <p class="text">
+                    <strong>Task Definition & Assumptions. </strong>
+                    Our task can be summarized as follows: given an image of an object suspended in midair, generate a video of the object falling and colliding with the ground and potentially other objects.
+                    We assume that the falling object is completely still in the initial frame, that only the force of gravity is acting on the object while it falls, and that the camera does not move.
+                </p>
+            </p>
+            <p class="text">
+                <p class="text">
+                    <strong>Task Setting. </strong>
+                    Our task takes place in the image-to-video setting. Just like a human is able to imagine a physically plausible continuation of a scene from a single image, we want our models to be able to do so as well.
+                </p>
+            </p>
+            <p class="text">
+                <p class="text">
+                    <strong>Real World Data. </strong>
+                    PisaBench includes 361 videos demonstrating the dropping task for evaluation. Each video begins with an object suspended by an invisible wire in the first frame. 
+                    We record the videos in slow-motion at 120 frames per second (fps) with cellphone cameras mounted on tripods to eliminate camera motion. As shown in <a href="#fig-real-stat">Figure 1</a>, 
+                    the dataset includes a diverse set of objects with various shapes and sizes, captured across a range of settings.
+                </p>
+            </p>
+            <d-figure id="fig-real-stat">
+                <figure>
+                    <img data-zoomable="" draggable="false" src="static/img/real_stat.jpg" alt="Real World Data Statistics">
+                    <figcaption>
+                        <strong>Figure 1: Statistics of the real-world data. </strong>(a) number of objects in each video, (b) video scenes.
+                    </figcaption>
+                </figure>
+            </d-figure>
+            <p class="text">
+                <p class="text">
+                    As shown in <a href="fig-real-annotation">Figure 2</a>, we annotate each video with a caption and segmentation masks estimated from 
+                    the SAM 2 video segmentation model. We create a descriptive caption for each object in the format of “{object description} falls.” 
+                    This caption is used to provide context to the task for image-to-video models that support text input.
+                </p>
+            </p>
+            <d-figure id="fig-real-annotation">
+                <figure>
+                    <img data-zoomable="" draggable="false" src="static/img/real_annotation.jpg" alt="Real World Data Annotation">
+                    <figcaption>
+                        <strong>Figure 2: Example of annotations in real-world data. </strong>
+                        For segmentation masks, we manually annotate first frame and utilize SAM 2 
+                        to produce segmentation masks across frames. For captions, we annotate 
+                        “{object description} falls.” for all video segments.
+                    </figcaption>
+                </figure>
+            </d-figure>
+            <p class="text">
+                <p class="text">
+                    <strong>Simulated Test Videos. </strong>
+                    Since our post-training process uses a dataset of simulated videos, we also create a simulation test-set of 60 videos for understanding sim2real transfer. We create two splits of 30 videos each: one featuring objects and backgrounds seen during training, and the other featuring unseen objects and backgrounds.
+                </p>
+            </p>
+            <p class="text">
+                <p class="text">
+                    <strong>Metrics. </strong>
+                    We propose three mask-based spatial metrics to assess the physical accuracy of generated videos.
+                    Different from the text-to-video setting where the ground truth is highly ambiguous, our constrained task limits the space 
+                    of possibilities on how the scene can evolve. This allows us to use simple metrics that compare generated frames to a ground-truth video. We utilize Trajectory L2, Chamfer Distance (CD) and Intersection over Union (IoU) - three object centric metrics - to evaluate accuracy of trajectory, shape fidelity and object permanence, respectively.
+                </p>
+            </p>
+            <p class="text">
+                <p class="text">
+                    <strong>Evaluation Results. </strong>
+                    We evaluate 4 open models including CogVideoX-5B-I2V, DynamiCrafter, Pyramid-Flow, and Open-Sora-V1.2, 
+                    as well as 4 closed models including Sora, Kling-V1, Kling-V1.5, and Runway Gen3. Results of Physics Supervised Fine-Tuning (PSFT) and Object Reward Optimization (ORO) are discussed in <a href="#post-training">Physics Post-Training</a>.
+                </p>
+                <d-figure id="tab:evaluation_results">
+                    <figure>
+                        <img data-zoomable="" draggable="false" src="static/img/evaluation_results.png" alt="evaluation results">
+                        <figcaption>
+                            <strong>Table 1: PisaBench Evaluation Results. </strong>This table compares the performance of four proprietary models, four open models, and the models fine-tuned with PSFT and PSFT + ORO on our real-world and simulated test set which is decomposed into seen and unseen object splits. Across all metrics, our PSFT models outperform all other baselines, including proprietary models like Sora. Reward modeling further enhances results, with segmentation rewards improving the shape-based IoU metric and optical rewards and depth rewards enhancing the motion-based L2 and CD metrics. This suggests that rewards can be flexibly adjusted to target specific aspects of performance.
+                        </figcaption>
+                    </figure>
+                </d-figure>
+            </p>
+            <div id="tab:showcases" style="display: flex; flex-direction: column; align-items: center; margin-left: -250px">
+                <div class="table-container">
+                    <table class="data-table">
+                        <tbody class="showcases">
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">GT</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/GT/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/GT/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/GT/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">Sora</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/sora/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/sora/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/sora/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">Kling V1</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/kling_v1/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/kling_v1/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/kling_v1/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">Kling V1.5</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/kling_v1_5/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/kling_v1_5/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/kling_v1_5/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">Runway Gen3</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/runway_gen3/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/runway_gen3/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/runway_gen3/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">CogVideoX-5B-I2V</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/cogvideo/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/cogvideo/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/cogvideo/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">DynamiCrafter</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/dynamicrafter/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/dynamicrafter/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/dynamicrafter/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">Pyramid-Flow</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/pyramid_flow/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/pyramid_flow/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/pyramid_flow/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">Open-Sora</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/opensora/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/opensora/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/opensora/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">Open-Sora + PSFT (base)</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/base/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/base/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/base/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">base + ORO (Seg)</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/oro_seg/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/oro_seg/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/oro_seg/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">base + ORO (Flow)</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/oro_flow/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/oro_flow/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/oro_flow/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark" style="font-size: 16px; padding: 12px 20px;">base + ORO (Depth)</span></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/oro_depth/real.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/oro_depth/seen.mp4" type="video/mp4"></video></td>
+                                <td><video autoplay loop playsinline><source src="static/videos/oro_depth/unseen.mp4" type="video/mp4"></video></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <figcaption>
+                <strong>Qualitative comparison of results on real test set (column 1), simulated seen test set (column 2) and simulated unseen test set (column 3).</strong>
+                We present the results of popular open-source and commercially available models alongside those of models fine-tuned through our method. Existing models often struggle to generate videos depicting objects falling, whereas our method effectively introduces knowledge of free-fall into the model. ORO enables the model to more accurately learn object motion and shape.
+            </figcaption>
+            
+            <!-- Interactive Video Comparison Section -->
+            <div id="interactive-comparison" style="margin-top: 40px;">
+                <h2 class="text" style="margin-bottom: 30px;">Interactive Video Comparison</h2>
+                
+                <!-- Split Selector -->
+                <div class="split-selector" style="margin-bottom: 20px; text-align: center;">
+                    <button id="id-btn" class="split-btn active" onclick="switchSplit('id')">ID</button>
+                    <button id="ood-btn" class="split-btn" onclick="switchSplit('ood')">OOD</button>
+                </div>
+                
+                <!-- Instance Navigation -->
+                <div class="instance-selector" style="margin-bottom: 30px;">
+                    <div class="navigation-controls" id="navigation-controls">
+                        <button id="prev-btn" class="nav-arrow" onclick="navigateInstance(-1)">←</button>
+                        <select id="instance-dropdown" class="instance-dropdown" onchange="selectInstance()">
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                        <button id="next-btn" class="nav-arrow" onclick="navigateInstance(1)">→</button>
+                    </div>
+                </div>
+                
+                <!-- Video Comparison Display -->
+                <div class="video-comparison">
+                    <div class="comparison-row">
+                        <div class="video-column">
+                            <h4 class="method-label">Ground Truth</h4>
+                            <video id="gt-video" controls autoplay loop playsinline muted style="width: 100%; max-width: 300px; border-radius: 8px;">
+                                <source id="gt-source" src="" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <div class="video-column">
+                            <h4 class="method-label">Baseline (CogVideoX-5B-I2V)</h4>
+                            <video id="cogvideo-video" controls autoplay loop playsinline muted style="width: 100%; max-width: 300px; border-radius: 8px;">
+                                <source id="cogvideo-source" src="" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <div class="video-column">
+                            <h4 class="method-label">PIRA (Ours)</h4>
+                            <video id="pira-video" controls autoplay loop playsinline muted style="width: 100%; max-width: 300px; border-radius: 8px;">
+                                <source id="pira-source" src="" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="text">
+                <p class="text">
+                    As shown in <a href="#tab:evaluation_results">Table 1</a>, the results of running the baseline models on the benchmark indicate a consistent failure to generate physically accurate dropping behavior, despite the visual realism of their generated frames.
+                    Qualitatively, we see common failure cases in the above showcases, such as implausible object deformations, floating, hallucination of new objects, and unrealistic special effects. We further visualize a random subset of generated trajectories on the left of <a href="#fig:trajectory">Figure 3</a>. In many cases, the object remains completely static, and sometimes the object even moves upward. When downward motion is present, it is often slow or contains unrealistic horizontal movement.
+                </p>
+            </p>
+            <d-figure id="fig:trajectory">
+                <figure>
+                    <img data-zoomable="" draggable="false" src="static/img/trajectory.png" alt="trajectory visulization">
+                    <figcaption>
+                        <strong>Figure 3: Trajectory visualization. </strong>On the left, we plot random trajectories from the baseline models in Table 1. On the right, we show random trajectories from our fine-tuned model. The baseline trajectories exhibit unrealistic behavior, and most of them stay completely static. On the right, we see the trajectories consistently falling downward with collision and rolling behavior being modeled after the point of contact.
+                    </figcaption>
+                </figure>
+            </d-figure>
+        </div>
+        
+        <div id="post-training">
+            <h1 class="text">Physics Post-Training</h1>
+            <p class="text">
+                <p class="text">
+                    We present a post-training process to address the limitations of current models. We utilize simulated videos that demonstrate realistic dropping behavior. Our approach for post-training is inspired by the two-stage pipeline consisting of supervised fine-tuning followed by reward modeling commonly used in LLMs.
+                </p>
+            </p>
+            <p class="text">
+                <p class="text">
+                    <strong>Simulated Adaptation Data. </strong>
+                    We use Kubric to create simulated videos of objects dropping and colliding with other objects on the ground. Each video consists of 1-6 dropping objects onto a (possibly empty) pile of up to 4 objects underneath them. The videos are 2 seconds long, consisting of 32 frames at 16 fps. The objects are sourced from the Google Scanned Objects (GSO) dataset, which provides true-to-scale 3D models created from real-world scans across diverse categories.
+                </p>
+            </p>
+            <p class="text">
+                <p class="text">
+                    <strong>Physics Supervised Fine-Tuning (PSFT). </strong>
+                    In the first stage, we use the pretrained Open-Sora v1.2 as our base model and fine-tune it on our simulated video dataset. We employ Open-Sora v1.2's rectified flow training objective without modification.
+                    We have the following findings:
+                    <ol class="text">
+                        <li>Fine-tuning with this data alone is sufficient to induce realistic dropping behavior in the model. (See <a href="#tab:evaluation_results">Table 1</a>)</li>
+                        <li>Only 5,000 samples are needed to achieve optimal results. (See <a href="fig:training_curve">Figure 4</a>)</li>
+                        <li>The learned knowledge from Open-Sora's pretraining plays a critical role in our task. (See <a href="fig:training_curve">Figure 4</a>)</li>
+                    </ol>
+                </p>
+                <d-figure id="fig:training_curve">
+                    <figure>
+                        <img data-zoomable="" draggable="false" src="static/img/training_curve.png" alt="training curve">
+                        <figcaption>
+                            <strong>Figure 4. </strong>Plots (a), (b), and (c) demonstrate that our metrics tend to improve with further training and that leveraging a pre-trained video diffusion model enhances performance compared to random initialization. In plot (d), the size of the training dataset varies in each training run (each consisting of 5k steps). With only 5k samples, we can achieve optimal results.
+                        </figcaption>
+                    </figure>
+                </d-figure>
+            </p>
+            <p class="text">
+                <p class="text">
+                    <strong>Object Reward Optimization (ORO). </strong>
+                    In the second stage, we propose an approach Object Reward Optimization (ORO) to use reward gradients to guide the video generation model toward generating videos where the object's motion and shape more closely align with the ground truth. We use a pretrained vision model (depth, optical flow, and segmentation) to compare the signals derived from the model's generation with the ground truth. This reward can then be backprobagated to the model through its denoising steps. Our approach is similar to the <a href="https://vader-vid.github.io/" target="_blank">VADER</a> framework, please see our paper for more details.
+                </p>
+            </p>
+            <p class="text">
+                <p class="text">
+                We utilize SAM 2, RAFT, and Depth-Anything-V2 to generate segmenation masks, optical flow, and depth maps of the falling objects and define <strong>Segmentation Reward</strong>, <strong>Optical Flow Reward</strong>, and <strong>Depth Reward</strong> as follows:
+                \[
+                \begin{equation}
+                R_{\text{seg}}(x_0', x_0) = \operatorname{IoU}(M^{\text{gen}}, M^{\text{gt}})\\
+                R_{\text{flow}}(x_0', x_0) = -|V^{\text{gen}} - V^{\text{gt}}| \\
+                R_{\text{depth}}(x_0', x_0) = -|D^{\text{gen}} - D^{\text{gt}}|
+                \end{equation}
+                \]
+                </p>
+            </p>
+            <p class="text">
+                <p class="text">
+                We begin from the checkpoint of the first stage, which is trained on 5,000 samples trained over 5,000 gradient steps. We then fine-tune the model with ORO on the smiulated dataset. We have the following findings:
+                <ol class="text">
+                    <li>Incorporating ORO in reward modeling further improves performance. (See <a href="#tab:evaluation_results">Table 1</a>)</li>
+                    <li>Each reward function enhances the aspect of physicality that aligns with its intended purpose—segmentation rewards improve shape accuracy, while flow rewards and depth rewards improve motion accuracy. (See <a href="#tab:evaluation_results">Table 1</a>)</li>
+                </ol>
+            </p>
+        </div>
+        <div id="generalization">
+            <h1 class="text">Generalization Analysis</h1>
+            <p class="text">
+                <p class="text">
+                Having introduced our post-training methodology, we probe further into the model's understanding of the interaction between gravity and perspective, the two laws that determine the dynamics of our videos. We first test if the learned physical behavior of our model can generalize to dropping heights and depths beyond its training distribution. Then, we study the ability of the model to learn the probability distribution induced by the uncertainty of perspective.
+                </p>
+            </p> 
+            <p class="text">
+                <p class="text">
+                    <strong>Generalization to Unseen Depths and Heights. </strong>
+                    Depth and height are the main factors that affect the dynamics of a falling object in our videos. We can see this by combining the laws of gravity with perspective under our camera assumptions to model the object's image \(y\) coordinate as a function of time: 
+                    \[
+                    y(t) = \frac{f}{Z} (Y_0 - \frac{1}{2} g t^2)
+                    \]
+                </p>
+            </p>
+            <p class="text">
+                <p class="text">
+                    We create a simulated test set in which a single object is dropped from varying depths and heights, using objects and backgrounds unseen during training. We create an in-distribution (ID) and out-of-distribution (OOD) test set respectively.
+                </p>
+            </p> 
+            <div id="tab:depth_height_tab" style="display: flex; flex-direction: column; align-items: center;">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                        <tr>
+                            <th colspan="1" class="tb-hdr">Setting</th>
+                            <th colspan="1" class="tb-hdr">L2 (\(\downarrow\))</th>
+                            <th colspan="1" class="tb-hdr">Chamfer Distance (\(\downarrow\))</th>
+                            <th colspan="1" class="tb-hdr">IoU (\(\uparrow\))</th>
+                            <th colspan="1" class="tb-hdr">Time Error (\(\downarrow\))</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td class="section-border">ID</td>
+                            <td class="highlight">0.036</td>
+                            <td class="highlight">0.088</td>
+                            <td class="highlight">0.155</td>
+                            <td class="highlight">0.049</td>
+                        </tr>
+                        <tr>
+                            <tr>
+                                <td class="section-border">OOD</td>
+                                <td>0.044</td>
+                                <td>0.143</td>
+                                <td>0.049</td>
+                                <td>0.187</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <figcaption>
+                    <strong>Table 2: Results of our metrics on in-distribution (ID) and out-of-distribution (OOD) depth-height combinations. </strong> Depth values range from 1-5m (ID range \([1,3]\)) and height values range from 0.5-2.5 (ID range \([0.5,1.5]\)).
+                </figcaption>
+            </div>
+            <p class="text">
+                <p class="text">
+                    As shown in <a href="#tab:depth_height_tab">Table 2</a>, our analysis shows that performance degrades for out-of-distribution scenarios. Since depth and height are the main physical quantities that affect falling dynamics, this finding indicates that our model may struggle to learn a fully generalizable law that accounts for the interaction of perspective and gravity.
+                </p>
+            </p>
+            <p class="text">
+                <p class="text">
+                    <strong>Distributional Analysis.</strong>
+                    The evolution of a physical system is not uniquely determined by a single initial image, since the lossy uncertainty of perspective induces a distribution of possible outcomes as shown in <a href="fig:ambiguity">Figure 5</a>. An ideal video world model should (1) output videos that are faithful to the evolution of some plausible world state and (2) provide accurate coverage across the entire distribution of the world that is possible from its conditioning signal. In this section, we examine these two facets by studying \(p(t|y)\): the distribution of dropping times possible from an object at coordinate y in the image plane. To do this, we create a simulated dataset that has a much wider distribution \(p(t|y)\) than our PSFT dataset.
+                </p>
+            </p>
+            <d-figure id="fig:ambiguity">
+                <figure>
+                    <img data-zoomable="" draggable="false" src="static/img/ambiguity.png" alt="ambiguity figure">
+                    <figcaption>
+                        <strong>Figure 5. </strong>Demonstration of ambiguity in 2D perspective projections. Each of the three clouds appears the exact same in the camera's image. The right side shows how we perform a scale and translation augmentation to generate deliberately ambiguous data.
+                    </figcaption>
+                </figure>
+            </d-figure>
+            <p class="text">
+                <p class="text">
+                    <strong>Testing (1): 3D faithfulness of trajectories.</strong>
+                    After training our model on this new dataset, we test whether its trajectories are consistent with a valid 3D world state. We first obtain an estimated dropping time from generated videos using SAM2 masks. Using knowledge of the camera position, focal length, sensor width, and \(y\), we can obtain an implied depth and height of the trajectory. We can then back-project the video trajectory to 3D and analyze whether they constitute physically accurate trajectories. As show in in <a href="#fig:testing1">Figure 6</a>, we find that our model's lifted trajectories consistently align with the 3D trajectory at the height and depth implied by its dropping time, giving evidence that the model's visual outputs are faithful to some plausible real-world state.
+                </p>
+            </p>
+            <d-figure id="fig:testing1">
+                <figure>
+                    <img data-zoomable="" draggable="false" src="static/img/testing1.png" alt="testing1 figure">
+                    <figcaption>
+                        <strong>Figure 6: Examples of model trajectories lifted to 3D. </strong>The blue line represents the height of the camera ray passing through the bottom of the dropping object as a function of depth. The set of possible dropping trajectories at a given depth are depicted in gray. The lifted trajectory of the model is depicted in green.
+                    </figcaption>
+                </figure>
+            </d-figure>
+
+            <p class="text">
+                <p class="text">
+                    <strong>Testing (2): distributional alignment.</strong>
+                    Going beyond the level of individual trajectories, we study the model's learned conditional distribution \(p(t|y)\). We create 50 different initial images with differing values of y, generate 128 different videos from each, and estimate the dropping time in each video. Using the laws of gravity, the laws of perspective, and the assumption of uniform depth sampling in our dataset, we can analytically derive the probability \(p(t|y)\) as: 
+                    \[
+                    \begin{equation}
+                    p(t | y) =
+                    \begin{cases}
+                        \frac{gt}{(Z_{\max} - Z_{\min})\beta}, & t_{\min} \leq t \leq t_{\max} \\
+                        0, & \text{otherwise}
+                    \end{cases}
+                    \end{equation}
+                    \]
+                </p>
+            </p>
+            <p class="text">
+                <p class="text">
+                    We then measure goodness-of-fit for each of the 50 experiments using the Kolmogorov-Smirnov (KS). The null hypothesis of our KS test is that the two distributions being compared are equal, and we consider p-values less than 0.05 as evidence of misalignment. Since our measured times have limited precision and can only take 32 distinct values—due to estimating the contact frame—we approximate the ground truth \(p(t|y)\) using a Monte Carlo method. We sample 1000 values from the ground truth distribution and then quantized them into 32 bins corresponding to their frame, which we use as ground truth observations in the KS test. We find that in all 50/50 cases, the p-value from the test is less than 0.05, which provides evidence that the model does not learn the correct distribution of dropping times. We visualize the misalignment between the empirical cdf of the model's in <a href="fig:testing2">Figure 7</a>.
+                </p>
+            </p>
+            <d-figure id="fig:testing1">
+                <figure>
+                    <img data-zoomable="" draggable="false" src="static/img/testing2.png" alt="testing1 figure">
+                    <figcaption>
+                        <strong>Figure 7: Visualizing \(p(t|y)\) misalignment for different images.</strong>Green shows the ground-truth CDF, orange is the 32-frame quantized version, and blue is the empirical CDF of 128 different samples of dropping times from the model.
+                    </figcaption>
+                </figure>
+            </d-figure>
+        </div>
+        <div id="Conclusion">
+            <h1 class="text">Conclusion</h1>
+            <p class="text">
+                <p class="text">
+                    This work studies post-training as an avenue for adapting adapting pre-trained video generator into world models. We introduce a post-training strategy that is highly effective in aligning our model. Our work raises interesting insights into the learned distributions of generative models. Qualitatively, large scale image or video generative models appear to excel at generating likely samples from the data distribution, but this alone does not imply that they match the data distribution well in its entirety. As long as a model is able to generate likely samples, global distributional misalignment is not necessarily a problem for content creation. However, this problem becomes critical for world models, where alignment across the entire distribution is necessary for faithful world simulation. The insights revealed by our study, made possible by our constrained and tractable setting, indicate that although post-training improves per-sample accuracy, general distributional alignment remains unsolved.
+                </p>
+            </p>
+        </div>
+
+        </d-article>
+        <d-appendix>
+            <h3>BibTeX</h3>
+            <p class="bibtex">
+                @article{li2025pisa,<br>
+                &nbsp;&nbsp;title={PISA Experiments: Exploring Physics Post-Training for Video Diffusion Models by Watching Stuff Drop},<br>
+                &nbsp;&nbsp;author={Li, Chenyu and Michel, Oscar and Pan, Xichen and Liu, Sainan and Roberts, Mike and Xie, Saining},<br>
+                &nbsp;&nbsp;journal={arXiv preprint arXiv:2503.09595},<br>
+                &nbsp;&nbsp;year={2025}<br>
+                }
+            </p>
+
+            <d-footnote-list></d-footnote-list>
+            <d-citation-list></d-citation-list>
+        </d-appendix>
+        
+        <!-- bibliography will be inlined during Distill pipeline's pre-rendering -->
+        <d-bibliography src="bibliography.bib"></d-bibliography>
+        <script src="./static/js/nav-bar.js"></script>
+        
+        <script type="text/javascript">
+            // Interactive Video Comparison JavaScript
+            let currentSplit = 'id';
+            let currentInstance = 1; // 1..64 displayed
+            let autoRandomizeInterval = null;
+            let inactivityTimer = null;
+
+            function renderNavigationControls() {
+                populateDropdown();
+                updateArrowStates();
+            }
+
+            function populateDropdown() {
+                const dropdown = document.getElementById('instance-dropdown');
+                if (!dropdown) return;
+                
+                dropdown.innerHTML = '';
+                for (let i = 1; i <= 64; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `Instance ${i} of 64`;
+                    dropdown.appendChild(option);
+                }
+                dropdown.value = currentInstance;
+            }
+
+            function updateArrowStates() {
+                const prevBtn = document.getElementById('prev-btn');
+                const nextBtn = document.getElementById('next-btn');
+                
+                prevBtn.disabled = currentInstance === 1;
+                nextBtn.disabled = currentInstance === 64;
+            }
+
+            function selectInstance() {
+                const dropdown = document.getElementById('instance-dropdown');
+                if (dropdown) {
+                    currentInstance = parseInt(dropdown.value);
+                    updateArrowStates();
+                    updateVideos();
+                    resetInactivityTimer();
+                }
+            }
+
+            function updateInstanceDisplay() {
+                const dropdown = document.getElementById('instance-dropdown');
+                if (dropdown) {
+                    dropdown.value = currentInstance;
+                }
+            }
+
+            function navigateInstance(direction) {
+                const newInstance = currentInstance + direction;
+                if (newInstance >= 1 && newInstance <= 64) {
+                    currentInstance = newInstance;
+                    updateArrowStates();
+                    updateInstanceDisplay();
+                    updateVideos();
+                    resetInactivityTimer();
+                }
+            }
+
+            function switchSplit(split) {
+                currentSplit = split;
+                
+                // Update button states
+                document.getElementById('id-btn').classList.toggle('active', split === 'id');
+                document.getElementById('ood-btn').classList.toggle('active', split === 'ood');
+                
+                // Update videos for current instance
+                updateVideos();
+                resetInactivityTimer();
+            }
+            
+            function updateVideos() {
+                const idx = currentInstance - 1; // files are 0..63
+                const basePath = `static/videos/interactive/${currentSplit}/`;
+                const baselineDir = 'cogvideo_baselines';
+                const piraDir = 'pira_optical_flow';
+
+                console.log(`Loading videos for instance ${currentInstance} (idx=${idx}) in split=${currentSplit}`);
+
+                // Update video sources
+                const gtSource = document.getElementById('gt-source');
+                const cogvideoSource = document.getElementById('cogvideo-source');
+                const piraSource = document.getElementById('pira-source');
+
+                gtSource.src = `${basePath}ground_truth/${idx}_fall.mp4`;
+                cogvideoSource.src = `${basePath}${baselineDir}/${idx}_fall.mp4`;
+                piraSource.src = `${basePath}${piraDir}/${idx}_fall.mp4`;
+
+                console.log('Video paths:', {
+                    ground_truth: gtSource.src,
+                    cogvideo_baselines: cogvideoSource.src,
+                    pira_optical_flow: piraSource.src
+                });
+
+                // Reload and reset videos
+                const videos = [
+                    document.getElementById('gt-video'),
+                    document.getElementById('cogvideo-video'),
+                    document.getElementById('pira-video')
+                ];
+
+                videos.forEach((video, i) => {
+                    // Ensure video is muted for autoplay
+                    video.muted = true;
+                    video.load();
+                    
+                    // Use loadeddata event for more reliable loading detection
+                    video.addEventListener('loadeddata', () => {
+                        video.play().catch(err => {
+                            console.warn(`Video ${i} autoplay failed:`, err);
+                        });
+                    }, { once: true });
+                    
+                    // Fallback play attempt after a short delay
+                    setTimeout(() => {
+                        if (video.paused) {
+                            video.play().catch(err => {
+                                console.warn(`Video ${i} fallback autoplay failed:`, err);
+                            });
+                        }
+                    }, 500);
+                });
+            }
+
+            // Auto-randomization functions
+            function startAutoRandomize() {
+                if (autoRandomizeInterval) {
+                    clearInterval(autoRandomizeInterval);
+                }
+                autoRandomizeInterval = setInterval(() => {
+                    const availableInstances = [];
+                    for (let i = 1; i <= 64; i++) {
+                        if (i !== currentInstance) {
+                            availableInstances.push(i);
+                        }
+                    }
+                    if (availableInstances.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * availableInstances.length);
+                        currentInstance = availableInstances[randomIndex];
+                        updateArrowStates();
+                        updateInstanceDisplay();
+                        updateVideos();
+                    }
+                }, 30000); // 30 seconds
+            }
+
+            function stopAutoRandomize() {
+                if (autoRandomizeInterval) {
+                    clearInterval(autoRandomizeInterval);
+                    autoRandomizeInterval = null;
+                }
+            }
+
+            function resetInactivityTimer() {
+                stopAutoRandomize();
+                if (inactivityTimer) {
+                    clearTimeout(inactivityTimer);
+                }
+                inactivityTimer = setTimeout(() => {
+                    startAutoRandomize();
+                }, 30000); // Resume auto-randomization after 30 seconds of inactivity
+            }
+
+            // Video interaction handlers
+            function handleVideoInteraction() {
+                stopAutoRandomize();
+                resetInactivityTimer();
+            }
+
+            function handleMouseLeave() {
+                // Check if any video is in fullscreen
+                const isFullscreen = document.fullscreenElement || 
+                                    document.webkitFullscreenElement || 
+                                    document.mozFullScreenElement || 
+                                    document.msFullscreenElement;
+                
+                if (!isFullscreen) {
+                    startAutoRandomize();
+                }
+            }
+
+            function handleFullscreenChange() {
+                // Check if exiting fullscreen
+                const isFullscreen = document.fullscreenElement || 
+                                    document.webkitFullscreenElement || 
+                                    document.mozFullScreenElement || 
+                                    document.msFullscreenElement;
+                
+                if (!isFullscreen) {
+                    startAutoRandomize();
+                }
+            }
+            
+            
+            
+            // Initialize with first instance on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                renderNavigationControls();
+                
+                // Add error handlers to video elements
+                const videos = [
+                    document.getElementById('gt-video'),
+                    document.getElementById('cogvideo-video'),
+                    document.getElementById('pira-video')
+                ];
+                
+                videos.forEach((video, i) => {
+                    video.addEventListener('error', (e) => {
+                        console.error(`Video ${i} failed to load:`, e);
+                        console.error('Video src:', video.querySelector('source')?.src);
+                    });
+                    
+                    // Add video interaction event listeners
+                    video.addEventListener('play', handleVideoInteraction);
+                    video.addEventListener('pause', handleVideoInteraction);
+                    video.addEventListener('seeking', handleVideoInteraction);
+                    video.addEventListener('volumechange', handleVideoInteraction);
+                });
+                
+                // Add mouse leave handler to video comparison container
+                const videoComparison = document.querySelector('.video-comparison');
+                if (videoComparison) {
+                    videoComparison.addEventListener('mouseleave', handleMouseLeave);
+                }
+                
+                // Add fullscreen change listeners
+                document.addEventListener('fullscreenchange', handleFullscreenChange);
+                document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+                document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+                document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+                
+                updateVideos();
+                
+                // Ensure videos are muted and attempt autoplay on initial load
+                const initialVideos = [
+                    document.getElementById('gt-video'),
+                    document.getElementById('cogvideo-video'),
+                    document.getElementById('pira-video')
+                ];
+                
+                initialVideos.forEach((video, i) => {
+                    if (video) {
+                        video.muted = true;
+                        // Attempt immediate autoplay for initial load
+                        video.play().catch(err => {
+                            console.warn(`Initial video ${i} autoplay failed:`, err);
+                        });
+                    }
+                });
+                
+                startAutoRandomize(); // Start auto-randomization on page load
+            });
+        </script>
+    </body>
+</html>
