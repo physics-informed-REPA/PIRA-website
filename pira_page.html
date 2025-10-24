@@ -15,7 +15,7 @@
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="https://physics-informed-repa.github.io/PIRA-website/static/img/preview.png" />
         <meta name="twitter:title" content="Physics-Informed Representation Alignment (PIRA)" />
-        <meta name="twitter:description" content="Grounding Video Diffusion Models in the Causal Principles of the Physical World." />
+        <meta name="twitter:description" content="A framework for instilling targeted, interpretable physical knowledge into pre-trained Video Diffusion Models by re-purposing the model's native VAE as a physics encoder." />
 
         <script src="./static/js/distill_template.v2.js"></script>
 
@@ -46,6 +46,25 @@
         
         <!-- Interactive Video Comparison & Table Styles -->
         <style>
+            /* Section Header Styles - matching reference page */
+            .section-header {
+                font-size: 2rem;
+                font-weight: 600;
+                margin-top: 3rem;
+                margin-bottom: 1rem;
+                text-align: center;
+                color: #333;
+            }
+            
+            .subsection-header {
+                font-size: 1.3rem;
+                font-weight: 500;
+                margin-top: 2rem;
+                margin-bottom: 1rem;
+                text-align: center;
+                color: #333;
+            }
+
             .split-selector { margin-bottom: 20px; text-align: center; }
             .split-btn { background: #f8f9fa; border: 2px solid #dee2e6; color: #495057; padding: 10px 20px; margin: 0 5px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; }
             .split-btn:hover { background: #e9ecef; border-color: #adb5bd; }
@@ -69,13 +88,113 @@
             .results-table .method-name { text-align: left; font-weight: 500; }
             .best-score { background-color: #ffe0e0; }
             .second-best { background-color: #e0e8ff; }
+            .results-table .method-name a:hover {
+                text-decoration: underline;
+                color: #4a14f1;
+            }
+
+            /* Compact Authors & Affiliations Section - Header Version */
+            .authors-section {
+                text-align: center;
+                margin: 1.5rem 0 2rem 0;
+                padding: 0.5rem 1rem;
+            }
+
+            .authors-section .authors {
+                margin-top: 0.5rem;
+                line-height: 1.6;
+                font-size: 1.1rem;
+            }
+
+            .authors-section .authors a {
+                text-decoration: none;
+                color: #1e293b;
+                font-weight: 500;
+                transition: color 0.2s ease-in-out;
+            }
+
+            .authors-section .authors a:hover {
+                color: #0f172a;
+                text-decoration: underline;
+            }
+
+            .authors-section .affiliations {
+                color: #475569;
+                margin-top: 0.75rem;
+                font-size: 0.95rem;
+            }
+
+            .authors-section .affiliations a {
+                text-decoration: none;
+                color: #475569;
+                transition: color 0.2s ease-in-out;
+            }
+
+            .authors-section .affiliations a:hover {
+                color: #1e293b;
+                text-decoration: underline;
+            }
+
+            .authors-section .date {
+                color: #64748b;
+                margin-top: 0.5rem;
+                font-size: 0.9rem;
+            }
+
+            .tldr-section {
+                margin-top: 1.5rem;
+                text-align: center;
+                font-size: 0.95rem;
+                color: #475569;
+                line-height: 1.5;
+                max-width: 600px;
+                margin-left: auto;
+                margin-right: auto;
+            }
 
             @media (max-width: 768px) {
+                .section-header { font-size: 1.8rem; }
+                .subsection-header { font-size: 1.2rem; }
                 .navigation-controls { gap: 15px; }
                 .nav-arrow { padding: 10px 14px; font-size: 16px; min-width: 45px; }
                 .instance-dropdown { font-size: 14px; min-width: 120px; padding: 6px 10px; padding-right: 28px; }
                 .comparison-row { flex-direction: column; align-items: center; }
                 .video-column { min-width: 200px; }
+            }
+
+            /* Content wrapper for centering */
+            .content-wrapper {
+                max-width: 800px;
+                margin: 0 auto;
+                background: var(--background-primary, #fff);
+                position: relative;
+                z-index: 1;
+                box-sizing: border-box;
+            }
+
+            /* Citation section styling */
+            .citation-section {
+                text-align: center;
+                margin: 2rem 0;
+            }
+
+            .citation-box {
+                background: var(--background-secondary, #f9f9f9);
+                border: 1px solid var(--border-color, #ccc);
+                text-align: left;
+                border-radius: 5px;
+                padding: 1rem;
+                position: relative;
+                margin: 1rem auto;
+                max-width: 600px;
+            }
+
+            .citation-pre {
+                margin: 0;
+                font-family: monospace;
+                font-size: 0.9rem;
+                white-space: pre-wrap;
+                word-wrap: break-word;
             }
         </style>
     </head>
@@ -84,16 +203,26 @@
             <div class="header-container" id="header-container">
                 <div class="header-content">
                     <h1 style="margin-top: 0px">Physics-Informed Representation Alignment</h1>
-                    <p style="color: #3361aa; font-size: 20px;">
-                        Grounding Video Diffusion Models in the Causal Principles of the Physical World
-                    </p>
+                    <div class="authors-section">
+                        <div class="authors">
+                            <a href="https://antragoudaras.github.io/" target="_blank">Antonios Tragoudaras</a><sup>1</sup>,
+                            <a href="https://zadaianchuk.github.io/" target="_blank">Andrii Zadaianchuk</a><sup>1</sup>,
+                            <a href="https://www.dcherniavskii.com/" target="_blank">Daniil Cherniavskii</a><sup>1</sup>,
+                            <a href="https://www.francescolocatello.com/" target="_blank">Francesco Locatello</a><sup>2</sup>,
+                            <a href="https://www.egavves.com/" target="_blank">Efstratios Gavves</a><sup>1</sup>
+                        </div>
+                        <div class="affiliations">
+                            <sup>1</sup> <a href="https://www.uva.nl/" target="_blank">University of Amsterdam</a> &nbsp;&nbsp; <sup>2</sup> <a href="https://ista.ac.at/en/home/" target="_blank">ISTA</a>
+                        </div>
+                        <div class="date">Oct. 2025</div>
+                    </div>
                     <div class="button-container">
-                        <a href="https://arxiv.org/abs/YOUR_ARXIV_ID" class="button paper-link" target="_blank">
+                        <!-- <a href="https://arxiv.org/abs/YOUR_ARXIV_ID" class="button paper-link" target="_blank">
                             <span class="icon is-small"><i class="ai ai-arxiv"></i></span> arXiv
-                        </a>
-                        <a href="https://github.com/physics-informed-REPA" class="button" target="_blank">
-                            <span class="icon is-small"><i class="fab fa-github"></i></span> Code
-                        </a>
+                        </a> -->
+                        <!-- <a href="https://github.com/physics-informed-REPA" class="button" target="_blank">
+                            <span class="icon is-small"><i class="fab fa-github"></i></span> Code (Coming Soon!)
+                        </a> -->
                         <a href="https://huggingface.co/datasets/physics-informed-REPA/pira_dataset" class="button" target="_blank">
                             <span class="icon is-small"><img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Hugging Face logo" style="height: 1em;"></span> Dataset
                         </a>
@@ -101,55 +230,29 @@
                             <span class="icon is-small"><img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Hugging Face logo" style="height: 1em;"></span> Models
                         </a>
                     </div>
+                    <div class="tldr-section">
+                        <strong>TL;DR:</strong> State-of-the-art Video Diffusion Models (VDMs) are great at generating visually appealing videos but struggle with understanding physical phenomena. We introduce <strong>PIRA</strong>, a simple yet stable method to teach physics to pre-trained VDMs. Our key idea is to use the VDM's <strong>own native VAE encoder(tokenizer)</strong> to process proxy physics-centric signals (like motion, depth, and segmentation masks), for creating representations that the model can easily learn from. PIRA effectively closes the gap between the VDM's visual and its physical reasoning capabilities.
+                    </div>
                 </div>
                 <div class="header-image">
-                    <img src="static/img/teaser.png" alt="PIRA Teaser Image" class="teaser-image">
+                    <img src="static/img/teaser_no_watermark.png" alt="PIRA Teaser Image" class="teaser-image">
                 </div>
             </div>
         </div>
     <d-article>
-        <div class="byline">
-            <div class="byline-container">
-                <div class="byline-column">
-                    <h3>Authors</h3>
-                    <p><a href="https://antragoudaras.github.io/" class="author-link" target="_blank">Antonios Tragoudaras<sup>△</sup></a></p>
-                    <p><a href="https://zadaianchuk.github.io/" class="author-link" target="_blank">Andrii Zadaianchuk<sup>△</sup></a></p>
-                    <p><a href="https://www.dcherniavskii.com/" class="author-link" target="_blank">Daniil Cherniavskii<sup>△</sup></a></p>
-                    <p><a href="https://www.francescolocatello.com/" class="author-link" target="_blank">Francesco Locatello<sup>▲</sup></a></p>
-                    <p><a href="https://www.egavves.com/" class="author-link" target="_blank">Efstratios Gavves<sup>△</sup></a></p>
-                </div>
-                <div class="byline-column">
-                    <h3>Affiliations</h3>
-                    <p><sup>△</sup> <a href="https://www.uva.nl/" class="affiliation-link" target="_blank">University of Amsterdam</a></p>
-                    <p><sup>▲</sup> <a href="https://ista.ac.at/en/home/" class="affiliation-link" target="_blank">ISTA</a></p>
-                </div>
-                <div class="byline-column">
-                    <h3>Date</h3>
-                    <p>Sep. 2025</p>
-                </div>
-            </div>
-        </div>
 
-        <p class="text abstract">
-            <strong>TL;DR:</strong> State-of-the-art Video Diffusion Models (VDMs) generate visually stunning content but often fail at basic physics, limiting their use as reliable world simulators. We introduce <strong>PIRA (Physics-Informed Representation Alignment)</strong>, a framework that teaches physics to pre-trained VDMs. Instead of using external, incompatible encoders, our key innovation is to re-purpose the VDM's <strong>own native VAE</strong> to encode physics proxies like depth and motion. This creates inherently compatible "teacher" signals, enabling stable and effective knowledge distillation. PIRA significantly improves the physical plausibility of generated videos, demonstrating a robust path toward more trustworthy world models.
-        </p>
-        <div class="icon-row">
-            <a href="#method" class="icon-link">
-                <i class="fas fa-cogs icon-jump" alt="PIRA Method Icon"></i>
-                The PIRA<br>Framework
-            </a>
-            <a href="#results" class="icon-link">
-                <i class="fas fa-chart-bar icon-jump" alt="Results Icon"></i>
-                Results
-            </a>
+        <div id="abstract">
+            <h2 class="section-header">Abstract</h2>
+            <p class="text">
+                Envisioning large-scale Video Generative Models (VGMs) as world simulators represents a significant frontier in Artificial Intelligence, promising to empower the next generation of Physical AI; enabling embodied agents to learn, plan, and simulate actions in a safe, scalable digital twin of our physical world. Nevertheless, the realization of this vision is hindered by the models' limited understanding of physics. Concurrent works have revealed that these models have only developed immature physics reasoning capabilities, as an emerging from their generative pre-training on massive, unstructured video datasets. The aggregated knowledge is a fragile imitation of visual pattern visual patterns present in the training data, rather than a truly grasp of the underlying physical dynamics. Thus, despite their unprecedented visual fidelity abilities in generating videos, these models frequently defy fundamental physical laws. Existing methods struggle to bridge this gap: imposing explicit control at inference time does not enhance the model's intrinsic knowledge, while prior knowledge distillation methods via representation alignment relies on opaque, black-box vision encoders, suffers from training instabilities.
+            </p>
+            <p class="text">
+                To address these limitations, we introduce <strong>P</strong>hysics-<strong>I</strong>nformed <strong>R</strong>epresentation <strong>A</strong>lignment (PIRA), a framework for instilling targeted, interpretable physical knowledge into pre-trained Video Diffusion Models. Our approach is based on distilling knowledge from physics-rich proxy signals—representations of the observable consequences of physical laws, such as an optical flow field, relative depths, segmentation masks serving as a proxy of an object's state variable. This is a scalable approach for teaching simple  motions that adhere to Newtonian Dynamic laws. In our work we focus on items falling under normal gravity. The core of our design is to re-purpose the VDM's native VAE encoder to create inherently compatible <em>teacher</em> representations from these signals. Developing PIRA also necessitated a more principled evaluation of physical plausibility. We identify that existing benchmarks suffer from fundamental flaws, such as the subjectivity of Vision Question Answering based scores or the false negatives produced by single-outcome trajectory matching. We therefore introduce a novel, evaluation strategy that moves beyond these limitations by measuring a generated video's adherence to governing dynamical equations and conservation of physical invariants. Through extensive experiments, our findings reveal that PIRA is highly effective at teaching Video Diffusion Models to respect underlying physical principles. This work marks a significant step toward grounding Video Diffusion Models in some form of causal principles of the physical world, enhancing their reliability and trustworthiness as world simulators.
+            </p>
         </div>
-        <p class="click-hint" style="width: 85%;">
-            <i class="fas fa-hand-pointer" style="width: 1.5rem; color: #666;"></i>
-            <strong>Click to jump to each section.</strong>
-        </p>
         <hr>
 
-        <div id="method">
+        <!-- <div id="method">
             <h1 class="text">The PIRA Framework</h1>
             <p class="text">
                 The core problem with current Video Diffusion Models (VDMs) is the "physics gap": they create beautiful videos that often defy the laws of nature. Existing methods to fix this are flawed—they either control the model from the outside without teaching it anything, or they use incompatible "teacher" models that lead to unstable training.
@@ -165,20 +268,17 @@
                     </figcaption>
                 </figure>
             </d-figure>
-        </div>
+        </div> -->
 
         <div id="results">
-            <h1 class="text">Results</h1>
+            <h2 class="section-header">Video Examples</h2>
             
-            <h2 class="text">Qualitative Comparison</h2>
             <p class="text">
-                Visual results highlight the dramatic improvement PIRA brings. While the baseline model (CogVideoX) often generates videos where objects float, deform, or move unnaturally, our PIRA-finetuned model produces smooth, physically plausible free-fall trajectories that are nearly indistinguishable from the ground truth. This holds true for both in-distribution (ID) objects seen during training and, more importantly, for out-of-distribution (OOD) objects, demonstrating true generalization.
+                Visual results highlight the dramatic improvement PIRA brings. While the baseline model (CogvideoX-5B-I2V<d-cite key="yang2024cogvideox"></d-cite>) often generates videos where objects float, deform, or move unnaturally, our PIRA-finetuned model produces smooth, physically plausible free-fall trajectories that are nearly indistinguishable from the ground truth. This holds true for both in-distribution (ID) objects seen during training and, more importantly, for out-of-distribution (OOD) objects, demonstrating true generalization.
             </p>
 
             <!-- Interactive Video Comparison Section -->
             <div id="interactive-comparison" style="margin-top: 40px;">
-                <h3 class="text" style="margin-bottom: 30px; text-align: center;">Interactive Video Comparison</h3>
-                
                 <div class="split-selector">
                     <button id="id-btn" class="split-btn active" onclick="switchSplit('id')">In-Distribution (ID)</button>
                     <button id="ood-btn" class="split-btn" onclick="switchSplit('ood')">Out-of-Distribution (OOD)</button>
@@ -201,7 +301,7 @@
                             </video>
                         </div>
                         <div class="video-column">
-                            <h4 class="method-label">Baseline (CogVideoX)</h4>
+                            <h4 class="method-label">Baseline (CogvideoX-5B-I2V)</h4>
                             <video id="cogvideo-video" controls autoplay loop playsinline muted style="width: 100%; max-width: 300px; border-radius: 8px;">
                                 <source id="cogvideo-source" src="" type="video/mp4">
                             </video>
@@ -216,9 +316,9 @@
                 </div>
             </div>
 
-            <h2 class="text" style="margin-top: 60px;">Quantitative Results</h2>
+            <h2 class="section-header" style="margin-top: 60px;">Quantifying Physical Reasoning</h2>
             <p class="text">
-                To move beyond visual inspection, we use our <strong>Morpheus</strong> benchmark, which provides explicit, physics-informed scores. It measures a model's adherence to the governing equations of motion (Dynamical Score) and its ability to conserve physical invariants like energy and momentum (Physical Invariance Score). The results below show that across all metrics, PIRA variants consistently and significantly outperform both the baseline and the TORA-based approach, confirming PIRA's superior ability to learn the underlying physical laws.
+                To move beyond visual inspection, we use <strong><a href="https://arxiv.org/abs/2504.02918" target="_blank">Morpheus</a></strong> benchmark, which provides explicit, physics-informed scores. It measures a model's adherence to the governing equations of motion (Dynamical Score) and its ability to conserve physical invariants like energy and momentum (Physical Invariance Score). The results below show that across all metrics, PIRA variants consistently and significantly outperform both the baseline and the Specialized Motion Encoder approach, based on <a href="https://arxiv.org/abs/2412.10743" target="_blank">TORA</a>, confirming PIRA's superior ability to learn the underlying physical laws.
             </p>
             <table class="results-table">
                 <thead>
@@ -238,7 +338,7 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="method-name">CogVideoX (Baseline)</td>
+                        <td class="method-name"><a href="https://arxiv.org/abs/2408.06072" target="_blank">CogvideoX-5B-I2V</a> (Baseline)</td>
                         <td>0.392</td>
                         <td>0.638</td>
                         <td>0.515</td>
@@ -247,7 +347,7 @@
                         <td>0.572</td>
                     </tr>
                     <tr>
-                        <td class="method-name">SFT (Baseline)</td>
+                        <td class="method-name">Finetuned <a href="https://arxiv.org/abs/2408.06072" target="_blank">CogvideoX-5B-I2V</a> (Baseline)</td>
                         <td>0.672</td>
                         <td>0.782</td>
                         <td>0.727</td>
@@ -256,7 +356,7 @@
                         <td>0.729</td>
                     </tr>
                     <tr>
-                        <td class="method-name">TORA-based</td>
+                        <td class="method-name"><a href="https://arxiv.org/abs/2412.10743" target="_blank">Specialized Motion Encoder </td>
                         <td>0.897</td>
                         <td>0.901</td>
                         <td>0.899</td>
@@ -297,23 +397,28 @@
                 </tbody>
             </table>
             <figcaption style="text-align: center; margin-top: 10px; font-size: 0.9em; color: #666;">
-                <strong>Morpheus Scores:</strong> PIRA significantly outperforms baselines in modeling dynamics and conserving invariants. <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffe0e0; border: 1px solid #ccc;"></span> Best scores are highlighted in red, <span style="display: inline-block; width: 10px; height: 10px; background-color: #e0e8ff; border: 1px solid #ccc;"></span> second-best in blue.
+                <strong><a href="https://arxiv.org/abs/2504.02918" target="_blank">Morpheus</a> Scores:</strong> PIRA significantly outperforms baselines in modeling dynamics and conserving invariants. <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffe0e0; border: 1px solid #ccc;"></span> Best scores are highlighted in red, <span style="display: inline-block; width: 10px; height: 10px; background-color: #e0e8ff; border: 1px solid #ccc;"></span> second-best in blue.
             </figcaption>
         </div>
         
 
     </d-article>
-    <d-appendix>
-        <h3>BibTeX</h3>
-        <p class="bibtex">
-            @mastersthesis{tragoudaras2025pira,<br>
-            &nbsp;&nbsp;title={Physics-Informed Representation Alignment},<br>
-            &nbsp;&nbsp;author={Tragoudaras, Antonios and Zadaianchuk, Andrii and Cherniavskii, Daniil and Locatello, Francesco and Gavves, Efstratios},<br>
-            &nbsp;&nbsp;school={University of Amsterdam},<br>
-            &nbsp;&nbsp;year={2025}<br>
-            }
-        </p>
+    <div class="content-wrapper">
+        <div class="citation-section">
+            <h2>BibTeX</h2>
+            <div class="citation-box">
+                <pre class="citation-pre">@misc{tragoudaras2025pira,
+  title={Physics-Informed Representation Alignment},
+  author={Antonios Tragoudaras and Andrii Zadaianchuk and Daniil Cherniavskii and Francesco Locatello and Efstratios Gavves},
+  year={2025},
+  howpublished={\url{@https://physics-informed-REPA.github.io/PIRA-website/}},
+  note={Project website}
+}</pre>
+            </div>
+        </div>
+    </div>
 
+    <d-appendix>
         <d-footnote-list></d-footnote-list>
         <d-citation-list></d-citation-list>
     </d-appendix>

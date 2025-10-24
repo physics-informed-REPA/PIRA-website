@@ -94,6 +94,7 @@ html {
     gap: 1rem;
     margin-top: 2rem;
     flex-wrap: nowrap;
+    justify-content: center;
 }
 
 .button {
@@ -297,7 +298,8 @@ d-article {
     border-bottom: 2px solid #3498db;
 }
 
-/* Byline styling */
+/* Byline styling - OBSOLETE: Replaced with compact authors-section */
+/*
 .byline {
     margin: 3rem 0;
     padding: 2rem;
@@ -316,6 +318,7 @@ d-article {
     margin-bottom: 1rem;
     font-size: 1.2rem;
 }
+*/
 
 .author-link {
     color: #3498db;
