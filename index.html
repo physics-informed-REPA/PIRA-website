@@ -296,20 +296,20 @@
                     <div class="comparison-row">
                         <div class="video-column">
                             <h4 class="method-label">Ground Truth</h4>
-                            <video id="gt-video" controls autoplay loop playsinline muted preload="auto" style="width: 100%; max-width: 300px; border-radius: 8px;">
-                                <source id="gt-source" src="" type="video/mp4">
+                            <video id="gt-video" controls loop playsinline muted preload="metadata" style="width: 100%; max-width: 300px; border-radius: 8px;">
+                                Your browser does not support the video tag.
                             </video>
                         </div>
                         <div class="video-column">
                             <h4 class="method-label">Baseline (CogvideoX-5B-I2V)</h4>
-                            <video id="cogvideo-video" controls autoplay loop playsinline muted preload="auto" style="width: 100%; max-width: 300px; border-radius: 8px;">
-                                <source id="cogvideo-source" src="" type="video/mp4">
+                            <video id="cogvideo-video" controls loop playsinline muted preload="metadata" style="width: 100%; max-width: 300px; border-radius: 8px;">
+                                Your browser does not support the video tag.
                             </video>
                         </div>
                         <div class="video-column">
                             <h4 class="method-label">PIRA (Ours)</h4>
-                            <video id="pira-video" controls autoplay loop playsinline muted preload="auto" style="width: 100%; max-width: 300px; border-radius: 8px;">
-                                <source id="pira-source" src="" type="video/mp4">
+                            <video id="pira-video" controls loop playsinline muted preload="metadata" style="width: 100%; max-width: 300px; border-radius: 8px;">
+                                Your browser does not support the video tag.
                             </video>
                         </div>
                     </div>
@@ -476,62 +476,38 @@
             const idx = currentInstance - 1;
             const basePath = `static/videos/interactive/${currentSplit}/`;
             
-            const sources = {
-                'gt-source': `${basePath}ground_truth/${idx}_fall.mp4`,
-                'cogvideo-source': `${basePath}cogvideo_baselines/${idx}_fall.mp4`,
-                'pira-source': `${basePath}pira_optical_flow/${idx}_fall.mp4`
-            };
+            const videos = [
+                { id: 'gt-video', src: `${basePath}ground_truth/${idx}_fall.mp4` },
+                { id: 'cogvideo-video', src: `${basePath}cogvideo_baselines/${idx}_fall.mp4` },
+                { id: 'pira-video', src: `${basePath}pira_optical_flow/${idx}_fall.mp4` }
+            ];
             
-            const videoPromises = [];
-            
-            for (const id in sources) {
-                const sourceElement = document.getElementById(id);
-                const videoElement = sourceElement.parentElement;
+            videos.forEach(({ id, src }) => {
+                const videoElement = document.getElementById(id);
+                if (!videoElement) return;
                 
-                // Ensure video properties are set correctly
-                videoElement.muted = true;
-                videoElement.playsInline = true;
-                videoElement.autoplay = true;
+                // Pause current video if playing
+                videoElement.pause();
                 
-                // Create a promise for video loading
-                const videoPromise = new Promise((resolve, reject) => {
-                    const onCanPlay = () => {
-                        videoElement.removeEventListener('canplay', onCanPlay);
-                        videoElement.removeEventListener('error', onError);
-                        resolve();
-                    };
-                    
-                    const onError = (e) => {
-                        videoElement.removeEventListener('canplay', onCanPlay);
-                        videoElement.removeEventListener('error', onError);
-                        console.error(`Failed to load video: ${sources[id]}`, e);
-                        reject(e);
-                    };
-                    
-                    videoElement.addEventListener('canplay', onCanPlay, { once: true });
-                    videoElement.addEventListener('error', onError, { once: true });
-                });
+                // Set the new source directly on the video element
+                videoElement.src = src;
                 
-                videoPromises.push(videoPromise);
-                
-                // Set source and load
-                sourceElement.src = sources[id];
+                // Load the new video
                 videoElement.load();
-            }
-            
-            // Wait for all videos to be ready, then play
-            Promise.allSettled(videoPromises).then(results => {
-                results.forEach((result, index) => {
-                    if (result.status === 'fulfilled') {
-                        const id = Object.keys(sources)[index];
-                        const sourceElement = document.getElementById(id);
-                        const videoElement = sourceElement.parentElement;
-                        
-                        videoElement.play().catch(e => {
-                            console.warn(`Autoplay prevented for ${id}, user interaction may be required:`, e);
-                        });
-                    }
-                });
+                
+                // Try to play once loaded
+                videoElement.addEventListener('loadeddata', function onLoaded() {
+                    videoElement.removeEventListener('loadeddata', onLoaded);
+                    videoElement.play().catch(e => {
+                        console.log(`Autoplay prevented for ${id}, user can click play manually`);
+                    });
+                }, { once: true });
+                
+                // Error handling
+                videoElement.addEventListener('error', function onError(e) {
+                    videoElement.removeEventListener('error', onError);
+                    console.error(`Failed to load video ${src}:`, e);
+                }, { once: true });
             });
         }
         
