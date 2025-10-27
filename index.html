@@ -296,19 +296,19 @@
                     <div class="comparison-row">
                         <div class="video-column">
                             <h4 class="method-label">Ground Truth</h4>
-                            <video id="gt-video" controls autoplay loop playsinline muted style="width: 100%; max-width: 300px; border-radius: 8px;">
+                            <video id="gt-video" controls autoplay loop playsinline muted preload="auto" style="width: 100%; max-width: 300px; border-radius: 8px;">
                                 <source id="gt-source" src="" type="video/mp4">
                             </video>
                         </div>
                         <div class="video-column">
                             <h4 class="method-label">Baseline (CogvideoX-5B-I2V)</h4>
-                            <video id="cogvideo-video" controls autoplay loop playsinline muted style="width: 100%; max-width: 300px; border-radius: 8px;">
+                            <video id="cogvideo-video" controls autoplay loop playsinline muted preload="auto" style="width: 100%; max-width: 300px; border-radius: 8px;">
                                 <source id="cogvideo-source" src="" type="video/mp4">
                             </video>
                         </div>
                         <div class="video-column">
                             <h4 class="method-label">PIRA (Ours)</h4>
-                            <video id="pira-video" controls autoplay loop playsinline muted style="width: 100%; max-width: 300px; border-radius: 8px;">
+                            <video id="pira-video" controls autoplay loop playsinline muted preload="auto" style="width: 100%; max-width: 300px; border-radius: 8px;">
                                 <source id="pira-source" src="" type="video/mp4">
                             </video>
                         </div>
@@ -482,22 +482,73 @@
                 'pira-source': `${basePath}pira_optical_flow/${idx}_fall.mp4`
             };
             
+            const videoPromises = [];
+            
             for (const id in sources) {
                 const sourceElement = document.getElementById(id);
                 const videoElement = sourceElement.parentElement;
+                
+                // Ensure video properties are set correctly
+                videoElement.muted = true;
+                videoElement.playsInline = true;
+                videoElement.autoplay = true;
+                
+                // Create a promise for video loading
+                const videoPromise = new Promise((resolve, reject) => {
+                    const onCanPlay = () => {
+                        videoElement.removeEventListener('canplay', onCanPlay);
+                        videoElement.removeEventListener('error', onError);
+                        resolve();
+                    };
+                    
+                    const onError = (e) => {
+                        videoElement.removeEventListener('canplay', onCanPlay);
+                        videoElement.removeEventListener('error', onError);
+                        console.error(`Failed to load video: ${sources[id]}`, e);
+                        reject(e);
+                    };
+                    
+                    videoElement.addEventListener('canplay', onCanPlay, { once: true });
+                    videoElement.addEventListener('error', onError, { once: true });
+                });
+                
+                videoPromises.push(videoPromise);
+                
+                // Set source and load
                 sourceElement.src = sources[id];
                 videoElement.load();
-                videoElement.play().catch(e => console.error("Autoplay failed:", e));
             }
+            
+            // Wait for all videos to be ready, then play
+            Promise.allSettled(videoPromises).then(results => {
+                results.forEach((result, index) => {
+                    if (result.status === 'fulfilled') {
+                        const id = Object.keys(sources)[index];
+                        const sourceElement = document.getElementById(id);
+                        const videoElement = sourceElement.parentElement;
+                        
+                        videoElement.play().catch(e => {
+                            console.warn(`Autoplay prevented for ${id}, user interaction may be required:`, e);
+                        });
+                    }
+                });
+            });
         }
         
         document.addEventListener('DOMContentLoaded', function() {
+            // Ensure all videos are muted for autoplay before doing anything else
+            document.querySelectorAll('video').forEach(v => {
+                v.muted = true;
+                v.playsInline = true;
+            });
+            
             populateDropdown();
             updateArrowStates();
-            updateVideos();
             
-            // Ensure all videos are muted for autoplay
-            document.querySelectorAll('video').forEach(v => v.muted = true);
+            // Use requestAnimationFrame to ensure DOM is fully ready
+            requestAnimationFrame(() => {
+                updateVideos();
+            });
         });
     </script>
 </body>
