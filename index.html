@@ -477,12 +477,12 @@
         
         function updateVideos() {
             const idx = currentInstance - 1;
-            const basePath = `static/videos/interactive/${currentSplit}/`;
+            const baseURL = 'https://media.githubusercontent.com/media/physics-informed-REPA/PIRA-website/main/static/videos/interactive';
             
             const videos = [
-                { id: 'gt-video', src: `${basePath}ground_truth/${idx}_fall.mp4` },
-                { id: 'cogvideo-video', src: `${basePath}cogvideo_baselines/${idx}_fall.mp4` },
-                { id: 'pira-video', src: `${basePath}pira_optical_flow/${idx}_fall.mp4` }
+                { id: 'gt-video', src: `${baseURL}/${currentSplit}/ground_truth/${idx}_fall.mp4` },
+                { id: 'cogvideo-video', src: `${baseURL}/${currentSplit}/cogvideo_baselines/${idx}_fall.mp4` },
+                { id: 'pira-video', src: `${baseURL}/${currentSplit}/pira_optical_flow/${idx}_fall.mp4` }
             ];
             
             videos.forEach(({ id, src }) => {
